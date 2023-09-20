@@ -1,6 +1,6 @@
 import requests
 import threading
-import re # regex, it's a crap library name
+import re
 import mimetypes
 import extraui
 import os
@@ -11,7 +11,7 @@ from urllib.parse import urljoin
 from urllib.parse import urlsplit
 from itertools import chain
 
-schemeColonMap = {"http":"://","https":"://","tel":":","mailto":":","ftp":"://",}
+schemeColonMap = {"http":"://","https":"://","tel":":","mailto":":","ftp":"://",} # apparently this is called a hier part, google seems to not recognize this term though
 
 def verifyFullURLFUNC(url): # a function that checks if a url is absolute (USE WEBASSET.VERIFYFULLURL() FOR WEBASSETS)
     if urlparse(url).netloc == '' and urlparse(url).scheme == '':
@@ -65,7 +65,7 @@ class WebAsset(): # parent class for all things online
         try:
             response = requests.get(self.getAbsoluteURL(), cookies=self.getRootObj().cookies)
         except: # trust me, i know that this is stupid, but keeping exceptions inside of tuples and such just plain didnt work, i have no idea why 
-            #extraui.warn(f"Failed to get {self.getAbsoluteURL() if self.getAbsoluteURL() else self.getStartingURL()} {self.getAbsoluteURL()}")
+            extraui.warn(f"Failed to get {self.getAbsoluteURL() if self.getAbsoluteURL() else self.getStartingURL()}")
             self.failedAccess = True
         if not(self.failedAccess):
             self.absoluteUrl = response.url # uses redirects in case there are any
@@ -75,7 +75,7 @@ class WebAsset(): # parent class for all things online
             if type(self.url).__name__ != "list" and not(self.extension):
                 self.extension = self.url.split(".")[-1].split("?")[0]
         except Exception as e:
-            extraui.warn(f"Cannot use {self.getAbsoluteURL() if self.getAbsoluteURL() else self.getStartingURL()} {self.getAbsoluteURL()} could not find type (this issue is usually caused by other problems)")
+            extraui.warn(f"Cannot use {self.getAbsoluteURL() if self.getAbsoluteURL() else self.getStartingURL()} could not find type (this issue is usually caused by other problems)")
             self.broken = True
             self.failedAccess = True
 
@@ -216,8 +216,6 @@ class Site(WebAsset): # The site class, stores a site and all of it's attributes
             srcs.extend([x[1] for x in re.findall("src=([\''])(.*?)\\1", content)])
             correct = lambda a : a[1 if a[0] in ["'",'"'] else 0 : -1 if a[-1] in ["'",'"'] else len(a)] # WHO USES CSS url() AND DOESNT USE QUOTATION MARKS... WHYYYY
             srcs.extend([correct(x[4:-1]) for x in re.findall(r"url\([^)]*\)", content)])
-            #srcs.extend(x[5:-3] for x in re.findall('url\\(\"[^\"]*\"\\);', content))
-            #srcs.extend(x[5:-3] for x in re.findall('url\\(\'[^\']*\'\\);', content))
             urlsAbove = [self.getAbsoluteURL()]
             tempClass = self.caller
             while type(tempClass).__name__ != "Archive":
@@ -293,7 +291,7 @@ class Archive():
     def getAbsoluteURL(self):
         return self.url
     
-    def startDownload(self):
+    def startDownload(self): # starts processing the archive and downloads all of the sources
         def handleQueue(archive): # function running on seperate thread that 
             cycleCount = 0 # really crap solution to race conditions (accounts for the time between initialsite being processed and the queue/threads being filled)
             # we cannot go off of Site().completed because it isnt triggered if we have reached the maxDepth, as it is designed to
@@ -335,8 +333,7 @@ class Archive():
             print(f"Downloaded {src.absoluteUrl}")
         print(f"Finished downloading sources")
 
-
-    def applyLocalisation(self):
+    def applyLocalisation(self): # converts the online links in every site to local, offline links
         print("Converting online links to local offline links")
         for currentSite in self.allSites:
             if currentSite.extension in ['css','html'] and not(currentSite.broken or currentSite.failedAccess) and currentSite.processed:
@@ -350,12 +347,14 @@ class Archive():
                         for j in x.url:
                             content = content.replace(f"href=\"{j}\"",f"href=\"{quote(x.getDownloadLocation())}\"")
                             content = content.replace(f"href=\'{j}\'",f"href=\"{quote(x.getDownloadLocation())}\"")
+                    # darn, these expressions sure do look regular! shame there isn't a way to use that fact
+                    # (i promise ill learn regex, it just looks like moon runes to me)
                     for x in self.allSrcs:
                         content = content.replace(f"url(\"{x.url}\")",f"url(\"{quote(x.getDownloadLocation())}\")")
                         content = content.replace(f"url(\'{x.url}\')",f"url(\"{quote(x.getDownloadLocation())}\")")
                         content = content.replace(f"src=\"{x.url}\"",f"src=\"{quote(x.getDownloadLocation())}\"")
                         content = content.replace(f"src=\'{x.url}\'",f"src=\"{quote(x.getDownloadLocation())}\"")
-                        content = content.replace(f"url({x.url})",f"url(\'{quote(x.getDownloadLocation())}\')")
+                        content = content.replace(f"url({x.url})",f"url({quote(x.getDownloadLocation())})")
                     with open(self.downloadDir + currentSite.getDownloadLocation(), "w") as File:
                         File.write(content)
                 except:
