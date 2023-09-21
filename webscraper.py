@@ -8,8 +8,6 @@ from urllib.parse import urlparse
 from urllib.parse import quote
 from urllib.parse import unquote
 from urllib.parse import urljoin
-from urllib.parse import urlsplit
-from itertools import chain
 
 schemeColonMap = {"http":"://","https":"://","tel":":","mailto":":","ftp":"://",} # apparently this is called a hier part, google seems to not recognize this term though
 
